@@ -1,0 +1,258 @@
+<?php
+
+function ixml_import_permission() {
+  return array(
+      'import xml' => array(
+          'title' => t('Import XML file provided by iMoney')),
+  );
+}
+
+function ixml_import_menu() {
+  $items = array(
+      'admin/config/imoney/ixml_import' => array(
+          'title' => 'Import XML',
+          'description' => 'Import XML file for iMoney mobile plans',
+          'page callback' => 'drupal_get_form',
+          'page arguments' => array('ixml_import_form'),
+          'access arguments' => array('import xml'),
+          'type' => MENU_NORMAL_ITEM,
+      ),
+      'admin/config/imoney/ixml_load' => array(
+          'title' => 'Loads XML content',
+          'description' => 'Loads XML contents into nodes',
+          'page callback' => 'ixml_load',
+//          'page callback' => 'drupal_get_form',
+//          'page arguments' => array('ixml_import_form'),
+          'access arguments' => array('import xml'),
+          'type' => MENU_CALLBACK,
+      ),
+  );
+
+  return $items;
+}
+
+function ixml_page() {
+  $output = "";
+
+  return $output;
+}
+
+function ixml_import_form($form, &$form_state) {
+
+  $form['#attributes'] = array('enctype' => "multipart/form-data");
+
+  $form['form'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Import XML file'),
+      '#description' => 'The file to be uploaded must be an XML file provided by iMoney.'
+  );
+
+  $form['form']['upload'] = array(
+      '#type' => 'file',
+      '#title' => t('Choose a file'),
+      '#title_display' => 'invisible',
+      '#size' => 22,
+      '#description' => 'You must set the file name to <i>imoneymobileplans.xml</i>. Uploading will override any existing file.',
+  );
+
+  $form['form']['submit_form'] = array(
+      '#type' => 'submit',
+      '#value' => 'Submit'
+  );
+
+
+  // show file link if exist
+  $uri = 'public://imoneymobileplans.xml';
+
+  if (!file_destination($uri, FILE_EXISTS_ERROR)) {
+    $form['list'] = array(
+        '#type' => 'fieldset',
+        '#title' => 'Load plans',
+        '#description' => 'Click on the file link to create contents based on the XML file. This will override any existing contents.'
+    );
+
+    $form['list']['link'] = array(
+        '#type' => 'item',
+        '#markup' => l('Load new contents.', 'admin/config/imoney/ixml_load'),
+    );
+  }
+
+//  return system_settings_form($form);
+  return $form;
+}
+
+function ixml_import_form_validate($form, &$form_state) {
+  $file = file_save_upload('upload', array(
+      'file_validate_extensions' => array('xml'),
+  ));
+  if ($file) {
+    if ($file = file_move($file, 'public://', FILE_EXISTS_REPLACE)) {
+      $form_state['values']['upload'] = $file;
+    } else {
+      form_set_error('upload', t('Failed to write the uploaded file the site\'s file folder.'));
+    }
+  } else {
+    form_set_error('upload', t('No file was uploaded.'));
+  }
+}
+
+function ixml_import_form_submit($form, &$form_state) {
+  $file = $form_state['values']['upload'];
+  unset($form_state['values']['upload']);
+
+  $file->status = FILE_STATUS_PERMANENT;
+
+  file_save($file);
+
+  drupal_set_message(t('The form has been submitted and the image has been saved, filename: @filename.', array('@filename' => $file->filename)));
+}
+
+/*
+ * this function process the xml file and then insert as a new node.
+ */
+
+function ixml_load() {
+  // show file link if exist
+  $uri = 'public://imoneymobileplans.xml';
+
+  if (!file_destination($uri, FILE_EXISTS_ERROR)) {
+    global $user;
+
+    // loading nodes
+    $plans = simplexml_load_file('imoneymobileplans.xml');
+
+    $n = 0;
+    $nid = array();
+
+    /*
+     * plans: freeCall, freeData, freeSMS, monthlyPayment, planImage, planName, planType
+     * freeCall and freeSMS in XML seem to contain wrong data. exchanging them manually below.
+     * 
+     * phones: pid, contractPeriod, mobileCapacity, mobileDevice, mobileImage, mobileManufacturer, sellPrice, telcoName, url
+     */
+    foreach ($plans as $plan) {
+      $n = $plan->nid;
+
+      settype($n, "integer");
+
+      // this only runs once for each plan
+      if (!in_array($n, $nid)) {
+        $nid[] = $n;
+
+        // create new plan object
+        $node = new stdClass();
+
+        $node->uid = $user->uid;
+        $node->title = $plan->planName;
+        $node->field_free_call = $plan->freeSMS;  // wrong in XML
+        $node->field_free_sms = $plan->freeCall;  // wrong in XML
+        $node->field_free_data = $plan->freeData;
+        $node->field_monthly_payment = $plan->monthlyPayment;
+        $node->field_image_url = $plan->planImage;
+        $node->field_plan_type = $plan->planType;
+
+//        $field_plan_nid = 0;
+        $field_plan_nid = create_plan($node);
+      }
+
+      // phones
+      $phones = $plan->phone->mobilePlan;
+
+      $phone = new stdClass();
+
+      $phone->uid = $user->uid;
+      $phone->title = $phones->mobileDevice;
+      $phone->field_plan = $field_plan_nid;
+      $phone->field_contract_period = $phones->contractPeriod;
+      $phone->field_mobile_capacity = $phones->mobileCapacity;
+      $phone->field_image_url = $phones->mobileImage;
+      $phone->field_manufacturer = $phones->mobileManufacturer;
+      $phone->field_price = $phones->sellPrice;
+      $phone->field_telco = $phones->telcoName;
+      $phone->field_url = $phones->url;
+
+
+      create_phone($phone);
+    }
+  }
+
+  drupal_set_message("This will take awhile... Please hold on.");
+} // ixml_load
+
+// created phone nodes
+function create_phone($phone) {
+
+  // needs to change data type explicitly from object to string 
+  settype($phone->title, "string");
+  settype($phone->field_plan, "string");
+  settype($phone->field_contract_period, "string");
+  settype($phone->field_mobile_capacity, "string");
+  settype($phone->field_image_url, "string");
+  settype($phone->field_manufacturer, "string");
+  settype($phone->field_price, "string");
+  settype($phone->field_telco, "string");
+  settype($phone->field_url, "string");
+
+  $node = new stdClass();
+
+  $node->type = "phone";
+  node_object_prepare($node);
+
+  $node->status = 0;
+  $node->uid = $phone->uid;
+  $node->language = LANGUAGE_NONE;
+
+  $node->title = $phone->title;
+
+  // additional fields
+  $node->field_plan['und'][0]['target_id'] = $phone->field_plan; // int
+  $node->field_contract_period['und'][0]['value'] = $phone->field_contract_period; // int
+  $node->field_mobile_capacity['und'][0]['value'] = $phone->field_mobile_capacity; // int
+  $node->field_image_url['und'][0]['value'] = $phone->field_image_url; // int
+  $node->field_price['und'][0]['value'] = $phone->field_price; // int
+  $node->field_telco['und'][0]['value'] = $phone->field_telco; // int
+  $node->field_url['und'][0]['value'] = $phone->field_url; // int
+  
+  // process the manufacturer tid
+  $var = taxonomy_get_term_by_name($phone->field_manufacturer);
+  $tid = array_keys($var);
+
+  $node->field_manufacturer['und'][0]['value'] = $tid[0]; // int
+  
+  node_save($node);
+} // create_phone
+
+// creates plan nodes
+function create_plan($plan) {
+
+  settype($plan->title, "string");
+  settype($plan->field_free_call, "integer");
+  settype($plan->field_free_sms, "integer");
+  settype($plan->field_free_data, "float");
+  settype($plan->field_monthly_payment, "integer");
+  settype($plan->field_image_url, "string");
+  settype($plan->field_plan_type, "string");
+
+  $node = new stdClass();
+
+  $node->type = "mobileplan";
+  node_object_prepare($node);
+
+  $node->status = 0;
+  $node->uid = $plan->uid;
+  $node->language = LANGUAGE_NONE;
+
+  $node->title = $plan->title;
+
+  // additional fields
+  $node->field_free_call['und'][0]['value'] = $plan->field_free_call; // int
+  $node->field_free_sms['und'][0]['value'] = $plan->field_free_sms;  // int
+  $node->field_free_data['und'][0]['value'] = $plan->field_free_data; // dec
+  $node->field_monthly_payment['und'][0]['value'] = $plan->field_monthly_payment; // int
+  $node->field_image_url['und'][0]['value'] = $plan->field_image_url; // text
+  $node->field_plan_type['und'][0]['value'] = $plan->field_plan_type; // text
+
+  node_save($node);
+
+  return $node->nid;
+} // create_plan

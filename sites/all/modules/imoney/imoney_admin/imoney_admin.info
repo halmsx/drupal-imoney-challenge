@@ -1,0 +1,5 @@
+name = iMoney Admin
+description = Provides menu, etc
+package = iMoney
+core = 7.x
+;configure = admin/config/imoney

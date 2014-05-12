@@ -1,0 +1,24 @@
+<?php
+
+function imoney_admin_permission() {
+  return array(
+      'imoney admin' => array(
+          'title' => t('Access iMoney admin pages')),
+  );
+}
+
+function imoney_admin_menu() {
+  $items = array(
+      'admin/config/imoney' => array(
+          'title' => 'iMoney',
+          'description' => 'iMoney Administration',
+          'page callback' => 'system_admin_menu_block_page',
+          'access arguments' => array('administer site configuration'),
+          'file' => 'system.admin.inc',
+          'file path' => drupal_get_path('module', 'system'),
+      ),
+  );
+
+  return $items;
+}
+
