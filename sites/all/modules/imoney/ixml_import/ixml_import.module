@@ -176,7 +176,9 @@ function ixml_load() {
     }
   }
 
-  drupal_set_message("This will take awhile... Please hold on.");
+  drupal_set_message("This will take awhile... Please hold on.", 'warning', FALSE);
+  
+  drupal_goto('mobile-plans');
 } // ixml_load
 
 // created phone nodes
@@ -217,7 +219,9 @@ function create_phone($phone) {
   $var = taxonomy_get_term_by_name($phone->field_manufacturer);
   $tid = array_keys($var);
 
-  $node->field_manufacturer['und'][0]['value'] = $tid[0]; // int
+  $node->field_manufacturer['und'][0]['tid'] = $tid[0]; // int
+  
+  $node->status = 1; // publish the content
   
   node_save($node);
   
@@ -252,6 +256,8 @@ function create_plan($plan) {
   $node->field_monthly_payment['und'][0]['value'] = $plan->field_monthly_payment; // int
   $node->field_image_url['und'][0]['value'] = $plan->field_image_url; // text
   $node->field_plan_type['und'][0]['value'] = $plan->field_plan_type; // text
+  
+  $node->status = 1; // publish the content
 
   node_save($node);
 
