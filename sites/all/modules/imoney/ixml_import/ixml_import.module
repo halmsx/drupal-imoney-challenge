@@ -151,7 +151,6 @@ function ixml_load() {
         $node->field_image_url = $plan->planImage;
         $node->field_plan_type = $plan->planType;
 
-//        $field_plan_nid = 0;
         $field_plan_nid = create_plan($node);
       }
 
@@ -172,6 +171,7 @@ function ixml_load() {
       $phone->field_url = $phones->url;
 
 
+//      print_r($field_plan_nid);
       create_phone($phone);
     }
   }
@@ -205,7 +205,7 @@ function create_phone($phone) {
   $node->title = $phone->title;
 
   // additional fields
-  $node->field_plan['und'][0]['target_id'] = $phone->field_plan; // int
+  $node->field_plan['und'][0]['nid'] = $phone->field_plan; // int
   $node->field_contract_period['und'][0]['value'] = $phone->field_contract_period; // int
   $node->field_mobile_capacity['und'][0]['value'] = $phone->field_mobile_capacity; // int
   $node->field_image_url['und'][0]['value'] = $phone->field_image_url; // int
@@ -220,6 +220,7 @@ function create_phone($phone) {
   $node->field_manufacturer['und'][0]['value'] = $tid[0]; // int
   
   node_save($node);
+  
 } // create_phone
 
 // creates plan nodes
