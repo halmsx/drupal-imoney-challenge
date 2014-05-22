@@ -55,6 +55,22 @@ function ixml_import_form($form, &$form_state) {
       '#description' => 'You must set the file name to <i>imoneymobileplans.xml</i>. Uploading will override any existing file.',
   );
 
+  $form['form']['deleteall'] = array(
+      '#type' => 'checkbox',
+      '#title' => 'Clear existing nodes',
+      '#description' => t('Select this box to remove existing nodes imported previously by the module.'),
+      '#default_value' => 0,
+      '#return_value' => 1
+  );
+
+  $form['form']['loadnow'] = array(
+      '#type' => 'checkbox',
+      '#title' => 'Load new nodes immediately',
+      '#description' => t('Select this box to load new nodes immediately after uploading.'),
+      '#default_value' => 0,
+      '#return_value' => 1
+  );
+
   $form['form']['submit_form'] = array(
       '#type' => 'submit',
       '#value' => 'Submit'
@@ -65,6 +81,8 @@ function ixml_import_form($form, &$form_state) {
   $uri = 'public://imoneymobileplans.xml';
 
   if (!file_destination($uri, FILE_EXISTS_ERROR)) {
+
+    // loads the content from xml file
     $form['list'] = array(
         '#type' => 'fieldset',
         '#title' => 'Load plans',
@@ -82,9 +100,11 @@ function ixml_import_form($form, &$form_state) {
 }
 
 function ixml_import_form_validate($form, &$form_state) {
+
   $file = file_save_upload('upload', array(
       'file_validate_extensions' => array('xml'),
   ));
+
   if ($file) {
     if ($file = file_move($file, 'public://', FILE_EXISTS_REPLACE)) {
       $form_state['values']['upload'] = $file;
@@ -105,6 +125,37 @@ function ixml_import_form_submit($form, &$form_state) {
   file_save($file);
 
   drupal_set_message(t('The form has been submitted and the image has been saved, filename: @filename.', array('@filename' => $file->filename)));
+
+  // deletes all nodes if checkbox selected
+  $deleteall = $form_state['values']['deleteall'];
+
+  if ($deleteall == 1) {
+
+    // delete mobile plan
+    $result_plan = db_query('SELECT nid FROM {node} n WHERE n.type = :type', array(':type' => 'mobileplan'));
+    $nids_plan = array();
+    foreach ($result_plan as $row) {
+      $nids_plan[] = $row->nid;
+    }
+    node_delete_multiple($nids_plan);
+
+    // delete phones
+    $result_phone = db_query('SELECT nid FROM {node} n WHERE n.type = :type', array(':type' => 'phone'));
+    $nids_phone = array();
+    foreach ($result_phone as $row) {
+      $nids_phone[] = $row->nid;
+    }
+    node_delete_multiple($nids_phone);
+
+    drupal_set_message('Existing nodes are deleted.', 'warning', FALSE);
+  }
+  
+  // loads new nodes if checked
+  $loadnow = $form_state['values']['loadnow'];
+  
+  if ($loadnow == 1) {
+    ixml_load();
+  }
 }
 
 /*
@@ -170,17 +221,16 @@ function ixml_load() {
       $phone->field_telco = $phones->telcoName;
       $phone->field_url = $phones->url;
 
-
-//      print_r($field_plan_nid);
       create_phone($phone);
     }
   }
 
   drupal_set_message("This will take awhile... Please hold on.", 'warning', FALSE);
-  
-  drupal_goto('mobile-plans');
-} // ixml_load
 
+//  drupal_goto('mobile-plans');
+}
+
+// ixml_load
 // created phone nodes
 function create_phone($phone) {
 
@@ -214,19 +264,18 @@ function create_phone($phone) {
   $node->field_price['und'][0]['value'] = $phone->field_price; // int
   $node->field_telco['und'][0]['value'] = $phone->field_telco; // int
   $node->field_url['und'][0]['value'] = $phone->field_url; // int
-  
   // process the manufacturer tid
   $var = taxonomy_get_term_by_name($phone->field_manufacturer);
   $tid = array_keys($var);
 
   $node->field_manufacturer['und'][0]['tid'] = $tid[0]; // int
-  
-  $node->status = 1; // publish the content
-  
-  node_save($node);
-  
-} // create_phone
 
+  $node->status = 1; // publish the content
+
+  node_save($node);
+}
+
+// create_phone
 // creates plan nodes
 function create_plan($plan) {
 
@@ -256,10 +305,12 @@ function create_plan($plan) {
   $node->field_monthly_payment['und'][0]['value'] = $plan->field_monthly_payment; // int
   $node->field_image_url['und'][0]['value'] = $plan->field_image_url; // text
   $node->field_plan_type['und'][0]['value'] = $plan->field_plan_type; // text
-  
+
   $node->status = 1; // publish the content
 
   node_save($node);
 
   return $node->nid;
-} // create_plan
+}
+
+// create_plan

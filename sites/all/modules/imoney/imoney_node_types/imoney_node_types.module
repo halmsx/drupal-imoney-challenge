@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the iMoney Node Types feature.
+ */
+
+include_once 'imoney_node_types.features.inc';
