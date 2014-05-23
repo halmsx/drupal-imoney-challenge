@@ -7,4 +7,4 @@ stylesheets[all][] = css/bootstrap.css
 stylesheets[all][] = css/main.css
 
 ; scripts
-;scripts[] = js/bootstrap.min.js
+scripts[] = js/bootstrap.min.js

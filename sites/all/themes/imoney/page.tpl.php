@@ -36,14 +36,10 @@ drupal_add_html_head($element, 'google_font_lato');
     <div class="row">
       <div class="col-lg-6">
         <h1>Trust the force. Choose your plan wisely.</h1>
+        
         <?php print(render(drupal_get_form('user_login_block'))); ?>
         
-        <form class="form-inline" role="form">
-          <div class="form-group">
-            <input type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter your email address">
-          </div>
-          <button type="submit" class="btn btn-warning btn-lg">Invite Me!</button>
-        </form>					
+        
       </div><!-- /col-lg-6 -->
       <div class="col-lg-6">
         <img class="img-responsive" src="<?php echo $this_path; ?>/img/ipad-hand.png" alt="">
@@ -199,6 +195,6 @@ drupal_add_html_head($element, 'google_font_lato');
     <div class="col-lg-3"></div>
   </div><!-- /row -->
   <hr>
-  <p class="centered">Created by BlackTie.co - Attribution License 3.0 - 2013</p>
+  <p class="centered">halms - 2013</p>
 </div><!-- /container -->
 
