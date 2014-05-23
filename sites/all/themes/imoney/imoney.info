@@ -1,0 +1,10 @@
+name = iMoney theme
+core = 7.x
+engine = phptemplate
+
+;styles
+stylesheets[all][] = css/bootstrap.css
+stylesheets[all][] = css/main.css
+
+; scripts
+;scripts[] = js/bootstrap.min.js
