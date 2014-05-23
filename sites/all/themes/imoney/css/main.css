@@ -172,6 +172,12 @@ table.views-table {
   background-color: #fff
 }
 
+.views-table thead th {
+  padding-left: 6px;
+  padding-right: 6px;
+  padding: 6px;
+}
+
 /*pager*/
 .item-list .pager li {
   margin: 0;
