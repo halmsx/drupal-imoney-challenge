@@ -152,6 +152,30 @@ i {
 }
 
 /* user login block form */
-#user-login-form .item-list a {
-  color: #fff
+.front #user-login-form .item-list a {
+  color: #fff !important
+}
+
+/* sidebar */
+#sidebar-first li a {
+  color: #333
+}
+
+/*views-table*/
+table.views-table {
+  width: 100%;
+}
+.views-table tbody td {
+  padding-left: 6px;
+  padding-right: 6px;
+  padding: 6px;
+  background-color: #fff
+}
+
+/*pager*/
+.item-list .pager li {
+  margin: 0;
+}
+.item-list .pager {
+  padding-top: 10px;
 }

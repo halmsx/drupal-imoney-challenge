@@ -47,11 +47,11 @@ drupal_add_html_head($element, 'google_font_lato');
     <div id="main-wrapper" class="row mt">
       <div id="content" class="column">
         <?php if ($page['sidebar_first']): ?>
-          <div id="sidebar-first" class="col-lg-2">
+          <div id="sidebar-first" class="col-lg-3">
             <?php print render($page['sidebar_first']); ?>
           </div> <!-- /.section, /#sidebar-first -->
         <?php endif; ?>
-        <div class="col-lg-10">
+        <div class="col-lg-9">
           <?php print render($page['content']); ?>
         </div>
       </div>
